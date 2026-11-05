@@ -83,7 +83,8 @@ def _job(company: str, ats: str, **kw: Any) -> dict[str, Any]:
 # ------------------------------------------------------------------ fetchers
 
 def fetch_greenhouse(e: dict) -> list[dict]:
-    data = _get_json(f"https://boards-api.greenhouse.io/v1/boards/{e['slug']}/jobs?content=true")
+    host = "boards-api.eu.greenhouse.io" if e.get("region") == "eu" else "boards-api.greenhouse.io"
+    data = _get_json(f"https://{host}/v1/boards/{e['slug']}/jobs?content=true")
     out = []
     for j in data.get("jobs", []):
         out.append(_job(
@@ -223,8 +224,9 @@ def detect_ats(url: str) -> dict[str, str] | None:
     host = p.netloc.lower().removeprefix("www.")
     parts = [x for x in p.path.split("/") if x]
     first = parts[0] if parts else ""
-    if host in {"boards.greenhouse.io", "job-boards.greenhouse.io", "job-boards.eu.greenhouse.io"} and first and first != "embed":
-        return {"ats": "greenhouse", "slug": first}
+    if host in {"boards.greenhouse.io", "job-boards.greenhouse.io", "job-boards.eu.greenhouse.io", "boards.eu.greenhouse.io"} \
+            and first and first != "embed":
+        return {"ats": "greenhouse", "slug": first, **({"region": "eu"} if ".eu." in host else {})}
     if host in {"boards.greenhouse.io", "job-boards.greenhouse.io"} and first == "embed":
         m = re.search(r"for=([\w-]+)", p.query)
         return {"ats": "greenhouse", "slug": m.group(1)} if m else None

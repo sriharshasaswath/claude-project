@@ -90,6 +90,7 @@ def test_scan_internship_only(fake_api):
 
 def test_detect_ats():
     assert boards.detect_ats("https://job-boards.greenhouse.io/acme/jobs/9") == {"ats": "greenhouse", "slug": "acme"}
+    assert boards.detect_ats("https://job-boards.eu.greenhouse.io/groww/jobs/1") == {"ats": "greenhouse", "slug": "groww", "region": "eu"}
     assert boards.detect_ats("jobs.eu.lever.co/zed/1") == {"ats": "lever", "slug": "zed", "region": "eu"}
     wd = boards.detect_ats("https://bigco.wd5.myworkdayjobs.com/en-US/External/job/X_R1")
     assert wd == {"ats": "workday", "host": "bigco.wd5.myworkdayjobs.com", "tenant": "bigco", "site": "External"}

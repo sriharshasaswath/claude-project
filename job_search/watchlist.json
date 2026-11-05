@@ -27,7 +27,8 @@
   {
     "name": "Groww",
     "ats": "greenhouse",
-    "slug": "groww"
+    "slug": "groww",
+    "region": "eu"
   },
   {
     "name": "Razorpay",

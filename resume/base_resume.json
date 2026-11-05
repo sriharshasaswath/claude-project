@@ -1,0 +1,92 @@
+{
+  "contact": {
+    "name": "Kandregula Sri Harsha Saswath",
+    "email": "ksharshas26@iik.ac.in",
+    "phone": "9032226929",
+    "location": "",
+    "links": ["linkedin.com/in/sriharshasaswath/"]
+  },
+  "headline": "",
+  "summary": "",
+  "skills": [
+    {"category": "Supply Chain & Operations", "skills": ["Demand Forecasting", "Inventory Management", "ABC Classification", "EOQ / ROP / Safety Stock Optimization", "Procurement Analysis", "Materials Management"]},
+    {"category": "Analytics & Tools", "skills": ["SAP ERP", "Power BI", "Advanced Excel", "SQL", "Python", "Ansys Fluent"]},
+    {"category": "DevOps & IT Operations", "skills": ["CI/CD", "Jenkins", "Prometheus", "Grafana", "Release Management", "Performance & Load Testing"]}
+  ],
+  "education": [
+    {"degree": "MBA", "school": "Indian Institute of Technology, Kanpur", "location": "", "start": "2026", "end": "2028", "score": "CGPA 10.00/10.00", "details": []},
+    {"degree": "B.Tech, Mechanical Engineering", "school": "Amrita School of Engineering, Bengaluru", "location": "", "start": "2018", "end": "2022", "score": "CGPA 7.13/10.00", "details": []},
+    {"degree": "Class XII (BIEAP)", "school": "Sri Chaitanya Jr College, Vizag", "location": "", "start": "2017", "end": "2018", "score": "91.30%", "details": []},
+    {"degree": "Class X (CBSE)", "school": "Vignan Steel City Public School, Vizag", "location": "", "start": "2015", "end": "2016", "score": "100%", "details": []}
+  ],
+  "experience": [
+    {
+      "title": "Project Engineer",
+      "company": "Wipro",
+      "location": "",
+      "start": "May 2022",
+      "end": "Nov 2024",
+      "bullets": [
+        "Supported CI/CD and release operations for the supply chain application landscape of a leading global networking and enterprise technology client, ensuring reliable and timely deployment of business-critical systems",
+        "Optimized Jenkins build and deployment pipelines to shorten release cycles and reduce manual intervention, improving turnaround on feature requests and change requirements raised by business stakeholders",
+        "Implemented Prometheus and Grafana monitoring across services to track system health and performance, enabling faster incident detection, quicker resolution and reduced downtime for downstream business users",
+        "Executed performance and load testing of enterprise applications prior to release, identifying throughput bottlenecks under peak conditions and validating system readiness to support uninterrupted business operations"
+      ]
+    },
+    {
+      "title": "Intern – Supply Chain Distribution, Materials Management",
+      "company": "RINL (Vizag Steel Plant)",
+      "location": "",
+      "start": "May 2026",
+      "end": "Jun 2026",
+      "bullets": [
+        "Analysed procurement and inventory data on live SAP ERP; performed ABC classification and EOQ/ROP/safety-stock optimization across the materials portfolio",
+        "Built Power BI dashboards tracking procurement and logistics KPIs to monitor inventory turns, lead-time variance and stock-out risk"
+      ]
+    },
+    {
+      "title": "Intern – Human Resource",
+      "company": "AstraSilica",
+      "location": "",
+      "start": "Jan 2026",
+      "end": "Apr 2026",
+      "bullets": [
+        "Ran social media recruitment campaigns for open roles, generating a candidate pipeline of 1300+ applications for a service-based startup",
+        "Served as a single point of contact for candidate coordination, resolving queries on schedules, operations and administrative processes through the hiring cycle"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Performance of Mini-Channel Heat Sinks Used in Battery Thermal Management",
+      "org": "Amrita Vishwa Vidyapeetham",
+      "dates": "2022–2023",
+      "link": "",
+      "bullets": [
+        "Simulated single, double and wavy mini-channel geometries (incl. centre-fin and pin-fin variants) across three coolants in Ansys Fluent under laminar flow; the double wavy channel with centre wavy fin and water raised heat transfer rate by 195% over the single-channel baseline",
+        "Co-authored the final-year B.Tech research project with a four-member team; work was presented at the Third International Conference on Advances in Physical Sciences and Materials (ICAPSM 2022)"
+      ]
+    }
+  ],
+  "certifications": [
+    {"name": "CTL.SC0x: Supply Chain Analytics", "issuer": "MITx (edX)", "date": "2026", "details": "Applied statistics, optimization and probability models to demand forecasting, inventory and network decisions"},
+    {"name": "Advanced Excel with AI", "issuer": "Tutedude", "date": "2026", "details": "Built dashboard and automated analysis using advanced functions, pivot models and AI-assisted workflows"},
+    {"name": "Introduction to Databases", "issuer": "NxtWave", "date": "2022", "details": "Built SQL fundamentals for querying relational databases; applied to data extraction and reporting"},
+    {"name": "Programming Foundations with Python", "issuer": "NxtWave", "date": "2022", "details": "Python basics for data handling and analytical problem solving"}
+  ],
+  "leadership": [
+    {
+      "title": "Fest Organizer",
+      "company": "AstraSilica",
+      "location": "",
+      "start": "2026",
+      "end": "",
+      "bullets": [
+        "Planned and executed the annual festival celebration for 130+ employees, leading a team of 12 across procurement, logistics and on-ground execution"
+      ]
+    }
+  ],
+  "additional": [
+    {"label": "Interests", "text": "Badminton, following cryptocurrency and financial markets, cinema"}
+  ]
+}

@@ -45,8 +45,12 @@ def _use_project_venv() -> None:
     if importlib.util.find_spec("docx") and importlib.util.find_spec("openpyxl"):
         return
     root = Path(__file__).resolve().parent.parent
-    for py in (root / ".venv/bin/python3", root / ".venv/Scripts/python.exe"):
-        if py.exists() and Path(sys.executable).resolve() != py.resolve() and not os.environ.get("JOBKIT_REEXEC"):
+    venv = root / ".venv"
+    # Compare prefixes, not executables: a venv's python is a symlink to the base interpreter.
+    if os.environ.get("JOBKIT_REEXEC") or Path(sys.prefix).resolve() == venv.resolve():
+        return
+    for py in (venv / "bin/python3", venv / "bin/python", venv / "Scripts/python.exe"):
+        if py.exists():
             os.environ["JOBKIT_REEXEC"] = "1"
             os.execv(str(py), [str(py), *sys.argv])
 

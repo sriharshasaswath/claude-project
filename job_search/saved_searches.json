@@ -33,5 +33,43 @@
       "full-time only"
     ],
     "last_run": "2026-11-05"
+  },
+  {
+    "name": "MBA internship",
+    "query": "MBA internship, last 14 days",
+    "keywords": [
+      "MBA intern",
+      "MBA internship",
+      "summer internship 2027",
+      "winter internship",
+      "live project",
+      "management trainee intern",
+      "strategy intern",
+      "operations intern",
+      "supply chain intern",
+      "consulting intern",
+      "business analyst intern",
+      "product management intern",
+      "finance intern",
+      "marketing intern",
+      "HR intern"
+    ],
+    "type": "internship",
+    "locations": [
+      "India",
+      "remote"
+    ],
+    "days": 14,
+    "posted_since": "2026-10-22",
+    "level": "MBA student (IIT Kanpur, 2026-28); prior 2.5 yrs work experience",
+    "exclude": [
+      "full-time",
+      "senior",
+      "manager",
+      "director",
+      "fee-based programs",
+      "unpaid course-style 'internships'"
+    ],
+    "last_run": "2026-11-05"
   }
 ]

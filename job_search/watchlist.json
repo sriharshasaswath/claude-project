@@ -13,5 +13,30 @@
     "name": "Dr. Reddy's Laboratories",
     "ats": "smartrecruiters",
     "slug": "DrReddysLaboratoriesLimited"
+  },
+  {
+    "name": "Neysa",
+    "ats": "greenhouse",
+    "slug": "neysanetwork"
+  },
+  {
+    "name": "Zinnov",
+    "ats": "greenhouse",
+    "slug": "zinnov"
+  },
+  {
+    "name": "Groww",
+    "ats": "greenhouse",
+    "slug": "groww"
+  },
+  {
+    "name": "Razorpay",
+    "ats": "greenhouse",
+    "slug": "razorpaysoftwareprivatelimited"
+  },
+  {
+    "name": "Lokal",
+    "ats": "workable",
+    "slug": "lokal-app"
   }
 ]

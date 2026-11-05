@@ -10,7 +10,8 @@ Both `/tailor` and `/find-jobs` follow this file at the start and end of every r
    - `browser_mode`: whether the Claude in Chrome tools can be available. They never are in cloud sessions, and
      the Chrome extension doesn't exist on phones.
    - `save_branch` and `auto_save`: the user's saved preferences (`job_search/config.json`).
-   - `deps_installed`: if false, run `python3 -m pip install -r requirements.txt`.
+   - `deps_installed`: if false, run `python3 -m venv .venv && .venv/bin/python3 -m pip install -r requirements.txt`.
+     `kit` uses the project `.venv` automatically. Don't install packages system-wide; Homebrew and some Linux Pythons block that.
 2. **Cloud mode only: get the latest tracker and resumes.** Other sessions may have pushed new results since this
    clone was made. If the current branch is not `save_branch`, run `git fetch origin <save_branch>` and then
    `git merge --no-edit origin/<save_branch>`. A fresh session has no local changes, so this merge is clean.

@@ -36,6 +36,24 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 
+def _use_project_venv() -> None:
+    """If the deps are missing here but the repo has a .venv (e.g. Homebrew Python on macOS,
+    which blocks system-wide pip installs), re-run this command with the venv's Python."""
+    import importlib.util
+    import os
+
+    if importlib.util.find_spec("docx") and importlib.util.find_spec("openpyxl"):
+        return
+    root = Path(__file__).resolve().parent.parent
+    for py in (root / ".venv/bin/python3", root / ".venv/Scripts/python.exe"):
+        if py.exists() and Path(sys.executable).resolve() != py.resolve() and not os.environ.get("JOBKIT_REEXEC"):
+            os.environ["JOBKIT_REEXEC"] = "1"
+            os.execv(str(py), [str(py), *sys.argv])
+
+
+_use_project_venv()
+
+
 def _need_deps() -> None:
     missing = []
     for mod, pkg in [("docx", "python-docx"), ("openpyxl", "openpyxl")]:
@@ -44,7 +62,8 @@ def _need_deps() -> None:
         except ImportError:
             missing.append(pkg)
     if missing:
-        sys.exit(f"Missing Python packages: {' '.join(missing)}\nInstall with: python3 -m pip install {' '.join(missing)}")
+        sys.exit(f"Missing Python packages: {' '.join(missing)}\nInstall them in a project venv (works everywhere, incl. Homebrew Python):\n"
+                 "  python3 -m venv .venv && .venv/bin/python3 -m pip install -r requirements.txt")
 
 
 def slug(text: str) -> str:
@@ -408,7 +427,7 @@ def cmd_env(_a) -> None:
     }
     print(json.dumps(info, indent=2))
     if not deps:
-        print("Install dependencies: python3 -m pip install -r requirements.txt")
+        print("Install dependencies: python3 -m venv .venv && .venv/bin/python3 -m pip install -r requirements.txt")
     if cloud and cfg["auto_save"] is None:
         print("auto_save not set: ask the user once whether results should be committed and pushed automatically.")
 

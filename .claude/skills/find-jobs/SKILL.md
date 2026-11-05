@@ -2,7 +2,7 @@
 name: find-jobs
 description: Deep job and internship search by role, keywords, and location across company career portals (Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, Recruitee), job boards (LinkedIn, Indeed, Naukri, Internshala, Unstop, hiring.cafe, iimjobs, Glassdoor, Wellfound and more), and LinkedIn hiring posts, then appends verified, de-duplicated results to the running Excel tracker ranked by resume match. Works locally and in cloud sessions, including the Claude mobile app. Use when the user runs /find-jobs or asks to find, scrape, or search for jobs or internships.
 argument-hint: <what to look for, e.g. "supply chain internship, Bengaluru or remote, last 14 days">
-allowed-tools: WebSearch, WebFetch, Read, Write, Edit, Glob, Grep, Agent, Bash(python3 jobkit/kit.py *), Bash(python3 -m pip install -r requirements.txt), Bash(mkdir -p job_search/*), Bash(git add *), Bash(git status*), Bash(git fetch origin *), Bash(git merge --no-edit origin/*)
+allowed-tools: WebSearch, WebFetch, Read, Write, Edit, Glob, Grep, Agent, Bash(python3 jobkit/kit.py *), Bash(python3 -m venv .venv), Bash(.venv/bin/python3 -m pip install -r requirements.txt), Bash(mkdir -p job_search/*), Bash(git add *), Bash(git status*), Bash(git fetch origin *), Bash(git merge --no-edit origin/*)
 ---
 
 # /find-jobs: search every corner for matching jobs and internships

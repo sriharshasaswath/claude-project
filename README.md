@@ -55,8 +55,12 @@ with columns for Type, Stipend/Salary, Deadline, Apply Via, Poster/Contact, Stat
 
 ## Setup
 ```bash
-python3 -m pip install -r requirements.txt
+python3 -m venv .venv
 ```
+```bash
+.venv/bin/python3 -m pip install -r requirements.txt
+```
+`jobkit/kit.py` switches to `.venv` automatically, so you don't need to activate it.
 Open Claude Code in this repository (`claude`, or `claude --chrome` for browser mode).
 
 ## Layout

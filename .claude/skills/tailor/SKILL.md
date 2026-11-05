@@ -2,7 +2,7 @@
 name: tailor
 description: Tailor the user's base resume to a job posting link, or to a role name (find open postings and pick one, or build a general resume for that role), for a strong ATS score. Iterate with the user in chat until they approve, save the result as a new DOCX named after the company and role, and append similar open jobs to the running Excel tracker. Works locally and in cloud sessions, including the Claude mobile app. Use when the user runs /tailor <job-url or role> or asks to tailor their resume.
 argument-hint: <job-posting-url | role, e.g. "Supply Chain Analyst, Bengaluru">
-allowed-tools: WebFetch, WebSearch, Agent, Read, Write, Edit, Glob, Grep, Bash(python3 jobkit/kit.py *), Bash(python3 -m pip install -r requirements.txt), Bash(mkdir -p applications/*), Bash(git add *), Bash(git status*), Bash(git fetch origin *), Bash(git merge --no-edit origin/*)
+allowed-tools: WebFetch, WebSearch, Agent, Read, Write, Edit, Glob, Grep, Bash(python3 jobkit/kit.py *), Bash(python3 -m venv .venv), Bash(.venv/bin/python3 -m pip install -r requirements.txt), Bash(mkdir -p applications/*), Bash(git add *), Bash(git status*), Bash(git fetch origin *), Bash(git merge --no-edit origin/*)
 ---
 
 # /tailor — tailor the resume to a job, review until approved, track similar jobs

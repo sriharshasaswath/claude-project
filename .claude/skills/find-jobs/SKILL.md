@@ -1,15 +1,17 @@
 ---
 name: find-jobs
-description: Deep job and internship search across company career portals (Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, Recruitee), job boards (LinkedIn, Indeed, Naukri, Internshala, Unstop, hiring.cafe, iimjobs, Glassdoor, Wellfound and more), and LinkedIn hiring posts, then appends verified, de-duplicated results to the running Excel tracker ranked by resume match. Use when the user runs /find-jobs or asks to find, scrape, or search for jobs or internships.
+description: Deep job and internship search by role, keywords, and location across company career portals (Greenhouse, Lever, Ashby, Workday, SmartRecruiters, Workable, Recruitee), job boards (LinkedIn, Indeed, Naukri, Internshala, Unstop, hiring.cafe, iimjobs, Glassdoor, Wellfound and more), and LinkedIn hiring posts, then appends verified, de-duplicated results to the running Excel tracker ranked by resume match. Works locally and in cloud sessions, including the Claude mobile app. Use when the user runs /find-jobs or asks to find, scrape, or search for jobs or internships.
 argument-hint: <what to look for, e.g. "supply chain internship, Bengaluru or remote, last 14 days">
-allowed-tools: WebSearch, WebFetch, Read, Write, Edit, Glob, Grep, Agent, Bash(python3 jobkit/kit.py *), Bash(mkdir -p job_search/*), Bash(git add job_search/* applications/*), Bash(git status*)
+allowed-tools: WebSearch, WebFetch, Read, Write, Edit, Glob, Grep, Agent, Bash(python3 jobkit/kit.py *), Bash(python3 -m pip install -r requirements.txt), Bash(mkdir -p job_search/*), Bash(git add *), Bash(git status*), Bash(git fetch origin *), Bash(git merge --no-edit origin/*)
 ---
 
 # /find-jobs: search every corner for matching jobs and internships
 
 Search request: **$ARGUMENTS**
 
-Run commands from the repository root. `kit` means `python3 jobkit/kit.py`; run `kit check` first.
+Run commands from the repository root. `kit` means `python3 jobkit/kit.py`.
+**First, follow "Start of run" in `jobkit/sessions.md`.** It checks dependencies, detects whether this is a cloud
+or phone session, and pulls the latest tracker and watchlist. Follow its phone-friendly rules for the rest of the run.
 Results go to `applications/job_tracker.xlsx`, sheet **Jobs**. This is the same tracker `/tailor` uses.
 The resume used for match % is `resume/base_resume.json`.
 
@@ -81,6 +83,8 @@ For important target companies whose careers site isn't API-readable (for exampl
 Taleo/iCIMS, or a custom site), WebSearch `"<Company>" careers <keyword> <city>` and WebFetch the listings.
 
 ### E. Logged-in browser (only if Claude in Chrome tools are available, meaning Claude Code was started with `claude --chrome`)
+In cloud or phone sessions, skip this group. Instead, make group C deeper, as described in `jobkit/sessions.md`, and
+list the sites a local browser run would add in the final report.
 This reaches content that blocks bots or needs a login. It is the best way to find LinkedIn posts.
 1. `kit search-urls --keywords "<main keywords>" --location "<city>" --type <type> --days <N>` gives pre-filled search links.
 2. Open **LinkedIn Posts (hiring)** first and read the results sorted by latest. Then do the same on
@@ -112,6 +116,10 @@ title + company), adds a match % against the resume, and sorts the new rows by m
 
 ## 5. Report
 
+Run `kit export-md` first to refresh `applications/JOBS.md`, the phone-friendly view. In cloud mode, send the
+tracker and `JOBS.md` if you have a tool for sending files.
+
+
 Tell the user:
 - How many jobs were added, broken down by source, and how many were skipped as already tracked.
 - The **top 10** by fit, as a table: role, company, location, type, posted date, stipend or salary, and link.
@@ -120,8 +128,7 @@ Tell the user:
 - Offer: "Run `/tailor <link>` on any of these" and "Save this as a saved search" (append the criteria to
   `job_search/saved_searches.json` so the user can later say "run my saved searches").
 
-Then run `git add job_search/ applications/`. Commit only if the user asks. In an ephemeral cloud session, remind
-them that uncommitted files are lost when the session ends.
+Then follow "End of run: save" in `jobkit/sessions.md`, with a commit message like `find-jobs: <query> (<N> new)`.
 
 ## Saved searches
 

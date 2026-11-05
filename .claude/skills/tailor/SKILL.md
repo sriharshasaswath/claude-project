@@ -1,18 +1,19 @@
 ---
 name: tailor
-description: Tailor the user's base resume to a job posting link for a strong ATS score, iterate with them in chat until they approve, save the result as a new DOCX named after the company and role, and append similar open jobs (found by deep web research) to the running Excel tracker. Use when the user runs /tailor <job-url> or asks to tailor their resume to a job link.
-argument-hint: <job-posting-url>
-allowed-tools: WebFetch, WebSearch, Agent, Read, Write, Edit, Glob, Grep, Bash(python3 jobkit/kit.py *), Bash(mkdir -p applications/*), Bash(git add applications/*), Bash(git status*)
+description: Tailor the user's base resume to a job posting link, or to a role name (find open postings and pick one, or build a general resume for that role), for a strong ATS score. Iterate with the user in chat until they approve, save the result as a new DOCX named after the company and role, and append similar open jobs to the running Excel tracker. Works locally and in cloud sessions, including the Claude mobile app. Use when the user runs /tailor <job-url or role> or asks to tailor their resume.
+argument-hint: <job-posting-url | role, e.g. "Supply Chain Analyst, Bengaluru">
+allowed-tools: WebFetch, WebSearch, Agent, Read, Write, Edit, Glob, Grep, Bash(python3 jobkit/kit.py *), Bash(python3 -m pip install -r requirements.txt), Bash(mkdir -p applications/*), Bash(git add *), Bash(git status*), Bash(git fetch origin *), Bash(git merge --no-edit origin/*)
 ---
 
 # /tailor — tailor the resume to a job, review until approved, track similar jobs
 
-Job link: **$ARGUMENTS**
+Request: **$ARGUMENTS**
 
-Run every command from the repository root. The helper is
-`python3 jobkit/kit.py <subcommand>` (called `kit` below). It needs only
-`python-docx` and `openpyxl`; run `kit check` first, and if it fails, install them with the pip command it prints.
-No API key is used. You do the fetching, research and writing with your own WebFetch/WebSearch tools.
+Run every command from the repository root. The helper is `python3 jobkit/kit.py <subcommand>` (called `kit` below).
+No API key is used. You do the fetching, research, and writing with your own WebFetch and WebSearch tools.
+
+**First, follow "Start of run" in `jobkit/sessions.md`.** It checks dependencies, detects whether this is a cloud
+or phone session, and pulls the latest tracker. Follow its phone-friendly rules for the rest of the run.
 
 ## Files
 
@@ -28,16 +29,43 @@ Read `reference/schemas.md` for the JSON shapes and `reference/ats-rules.md` for
 
 ## Step 1: Get the job posting
 
-1. If `$ARGUMENTS` is empty, ask the user for the job link and stop.
-2. WebFetch the URL. Ask for the **complete** posting: title, company, location, work mode, experience needed,
+Decide which mode the request is:
+- **Link mode**: `$ARGUMENTS` contains a URL. Continue with "1A".
+- **Role mode**: `$ARGUMENTS` is a role or title, optionally with a location, type, or company (for example
+  "Supply Chain Analyst, Bengaluru", "operations internship remote", "business analyst at Deloitte"). Continue with "1B".
+- If it's empty, ask: *"Send me a job link, or a role (plus location) to search for."* Then stop and wait.
+
+### 1A. From a link
+1. WebFetch the URL. Ask for the **complete** posting: title, company, location, work mode, experience needed,
    salary, date posted, full responsibilities, and full required and preferred qualifications.
-3. If WebFetch fails or returns too little (login wall, JavaScript-only page, summary missing the requirements),
+2. If WebFetch fails or returns too little (login wall, JavaScript-only page, summary missing the requirements),
    run `kit fetch-job "<url>"`. It reads the page's schema.org JSON-LD. If that also fails, WebSearch the title
    and company to find the same posting on another board. As a last resort, ask the user to paste the job text.
-4. If the page shows the posting as closed or expired, tell the user and ask whether to continue.
-5. Run `kit slug "<Company>" "<Role>"`, then `mkdir -p applications/<Slug>/drafts`. If the folder already exists,
+3. If the page shows the posting as closed or expired, tell the user and ask whether to continue.
+4. Run `kit slug "<Company>" "<Role>"`, then `mkdir -p applications/<Slug>/drafts`. If the folder already exists,
    tell the user this job was tailored before and ask whether to redo it or stop.
-6. Write `applications/<Slug>/job_posting.md`: the URL, the fetch date, the metadata, and the full description text.
+5. Write `applications/<Slug>/job_posting.md`: the URL, the fetch date, the metadata, and the full description text.
+
+### 1B. From a role
+1. Run a **quick search** for currently open postings that match the role. Use the `/find-jobs` method
+   (`.claude/skills/find-jobs/SKILL.md`, groups A to C) but keep it light: about 6 to 10 searches plus a
+   `kit scan-boards` with the role keywords. Aim for 8 to 12 verified, open postings that fit the user's
+   background. Default the location to India unless the user gave one. Save them to
+   `job_search/runs/<date>_<role-slug>/quick.json` and add them to the tracker with
+   `kit add-jobs ... --found-for "tailor: <role>"`.
+2. Show a short numbered list (role, company, location, posted date, link, and one line on fit), then ask:
+   *"Reply with a number to tailor for that posting, several numbers (one at a time), or **general** for one
+   resume aimed at this role in general."* End your turn and wait.
+3. **A number** means: continue with 1A using that posting's link. After it's approved, offer the next number if
+   they picked several.
+4. **general** means:
+   - Pick 5 to 8 of the best-matching postings and WebFetch each one. For each, write a short analysis file
+     `applications/General_<RoleSlug>/postings/<n>.json` (same shape as `job_analysis.json`).
+   - Run `kit merge-analyses applications/General_<RoleSlug>/postings/*.json --title "<Role>" --out applications/General_<RoleSlug>/job_analysis.json`.
+     Skills that recur across postings become required, and the rest become preferred.
+   - Use `<Slug>` = `General_<RoleSlug>` (from `kit slug "General" "<Role>"`) and list the postings you used in
+     `applications/General_<RoleSlug>/job_posting.md`. Skip Step 2 and go straight to Step 3. In the review
+     summary, show "<Role> (general)" instead of a company.
 
 ## Step 2: Analyze the job
 
@@ -101,7 +129,8 @@ When the user replies:
 2. `kit render applications/<Slug>/<Slug>_Resume.json --docx applications/<Slug>/<Slug>_Resume.docx --md applications/<Slug>/<Slug>_Resume.md`
 3. `kit score applications/<Slug>/<Slug>_Resume.json applications/<Slug>/job_analysis.json --json > applications/<Slug>/ats_report.json`
 4. `kit log --tracker applications/job_tracker.xlsx --company "<Company>" --role "<Role>" --url "<job url>" --before <base score> --after <final score> --file applications/<Slug>/<Slug>_Resume.docx`
-5. Tell the user the resume file path and the final score. Unless they said to skip it, start Step 6.
+5. Tell the user the resume file path and the final score. In cloud mode, send the DOCX file if you have a tool
+   for sending files. Unless they said to skip it, start Step 6.
 
 ## Step 6: Deep research for similar jobs, appended to the Excel tracker
 
@@ -117,15 +146,16 @@ Use these settings:
 - Merge with `kit add-jobs applications/<Slug>/research/*.json --tracker applications/job_tracker.xlsx --found-for "<Company> – <Role>" --resume applications/<Slug>/<Slug>_Resume.json`.
   This appends new rows only, skips jobs already in the tracker, and ranks the new rows by match %.
 - Report how many jobs were added and skipped, the top 5 by match % with their links, and any LinkedIn posts with a direct contact.
+- Refresh the phone view with `kit export-md`.
+- In role mode, the quick search in 1B already covers this. Run only the parts it skipped (groups D and E, plus a
+  deeper LinkedIn-post search).
 
 If the user wants research only, or wants to research before approving, run Step 6 by itself. Use the base resume
 for match % if no approved resume exists yet.
 
 ## Step 7: Save
 
-Run `git add applications/` and suggest a commit message such as `Tailor resume: <Company> – <Role>`. Commit and
-push only if the user asks or has already said to always do so. In an ephemeral cloud session, remind them that
-uncommitted files are lost when the session ends.
+Follow "End of run: save" in `jobkit/sessions.md`, with a commit message like `Tailor resume: <Company> – <Role>`.
 
 ## Updating the base resume
 

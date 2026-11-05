@@ -142,3 +142,45 @@ def test_search_urls():
     urls = boards.search_urls("supply chain", "Bengaluru", "internship", 7)
     assert "f_JT=I" in urls["LinkedIn Jobs"] and "past-week" in urls["LinkedIn Posts (hiring)"]
     assert urls["Internshala"].endswith("supply-chain-internship-in-bengaluru")
+
+
+def kit(*args, cwd=ROOT):
+    return subprocess.run([sys.executable, str(ROOT / "jobkit/kit.py"), *map(str, args)], capture_output=True, text=True, cwd=cwd)
+
+
+def test_merge_analyses_role_profile(tmp_path):
+    files = []
+    for i, (req, pref) in enumerate([(["SQL", "Power BI", "Excel"], ["Python"]), (["sql", "Excel", "SAP"], ["Power BI"]),
+                                     (["Excel", "Tableau"], ["SQL"])]):
+        f = tmp_path / f"{i}.json"
+        f.write_text(json.dumps({"title": "Supply Chain Analyst", "seniority": "Entry", "location": "Bengaluru",
+                                 "required_skills": req, "preferred_skills": pref, "keywords": ["S&OP", "KPI"] if i else ["KPI"],
+                                 "url": f"https://x.com/{i}"}))
+        files.append(f)
+    out = tmp_path / "role.json"
+    res = kit("merge-analyses", *files, "--title", "Supply Chain Analyst", "--out", out)
+    assert res.returncode == 0, res.stderr
+    role = json.loads(out.read_text())
+    assert role["required_skills"][:2] == ["Excel", "SQL"]  # recurring across postings; first spelling kept
+    assert "SAP" in role["preferred_skills"] and "Tableau" in role["preferred_skills"]
+    assert role["keywords"] == ["KPI", "S&OP"] and len(role["sources"]) == 3
+
+
+def test_export_md(tmp_path):
+    x = tmp_path / "t.xlsx"
+    append_jobs(x, [{"title": "Analyst | Ops", "company": "A", "url": "https://a.com/1", "source": "Naukri"},
+                    {"title": "Hiring post", "company": "B", "url": "https://linkedin.com/posts/1", "apply_via": "hr@b.com"}], "q")
+    md = tmp_path / "JOBS.md"
+    assert kit("export-md", "--tracker", x, "--out", md).returncode == 0
+    text = md.read_text()
+    assert "# Job tracker (2 jobs)" in text and "[Analyst / Ops](https://a.com/1)" in text
+    assert "apply via hr@b.com" in text
+
+
+def test_config_and_env(tmp_path):
+    (tmp_path / "job_search").mkdir()
+    assert kit("config", "auto_save", "true", cwd=tmp_path).stdout.strip() == "auto_save = true"
+    assert json.loads((tmp_path / "job_search/config.json").read_text())["auto_save"] is True
+    assert kit("config", "bogus", "1", cwd=tmp_path).returncode != 0
+    env = json.loads(kit("env").stdout.split("\nInstall")[0].split("\nauto_save")[0])
+    assert env["mode"] in {"local", "cloud (Claude app / web / mobile)"} and "deps_installed" in env

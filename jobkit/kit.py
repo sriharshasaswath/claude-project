@@ -17,6 +17,10 @@
   scan-boards --keywords "a,b" [--exclude ...] [--locations ...] [--type internship|fulltime|any]
               [--days N] [--title-only] --out FILE.json     scan every watchlist career portal
   search-urls --keywords "..." [--location ..] [--type ..] [--days N]   board search links (browser mode)
+  merge-analyses A.json B.json ... --title T --out OUT.json   combine several job analyses into one role profile
+  export-md --tracker X.xlsx --out JOBS.md [--limit N]        phone-friendly Markdown view of the tracker
+  env                                       cloud/mobile vs local, git branches, saved preferences
+  config [KEY [VALUE]]                      show/set job_search/config.json (auto_save, save_branch)
   log --tracker X.xlsx --company C --role R --url U --before N --after N --file PATH
 """
 
@@ -25,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -289,6 +294,142 @@ def cmd_search_urls(a) -> None:
         print(f"{name:<24} {url}")
 
 
+def cmd_merge_analyses(a) -> None:
+    """Combine several job analyses into one role profile.
+
+    A skill is 'required' for the role when at least max(2, 40%) of postings require it, or when
+    at least 60% of postings mention it at all. Everything else mentioned goes to 'preferred'.
+    """
+    import math
+    from collections import Counter
+
+    analyses = [json.loads(Path(f).read_text(encoding="utf-8")) for f in a.files]
+    n = len(analyses)
+    req_count, any_count, kw_count = Counter(), Counter(), Counter()
+    spelling: dict[str, str] = {}
+    for an in analyses:
+        req = {t.strip().lower() for t in an.get("required_skills") or [] if t.strip()}
+        pref = {t.strip().lower() for t in an.get("preferred_skills") or [] if t.strip()}
+        kws = {t.strip().lower() for t in an.get("keywords") or [] if t.strip()}
+        for t in (an.get("required_skills") or []) + (an.get("preferred_skills") or []) + (an.get("keywords") or []):
+            spelling.setdefault(t.strip().lower(), t.strip())
+        req_count.update(req)
+        any_count.update(req | pref)
+        kw_count.update(kws - req - pref)
+    need_req, need_any = max(2, math.ceil(0.4 * n)), max(2, math.ceil(0.6 * n))
+    order = sorted(any_count, key=lambda t: (-req_count[t], -any_count[t], t))
+    required = [spelling[t] for t in order if req_count[t] >= need_req or any_count[t] >= need_any]
+    preferred = [spelling[t] for t in order if spelling[t] not in required][:15]
+    keywords = [spelling[t] for t, c in sorted(kw_count.items(), key=lambda x: (-x[1], x[0])) if c >= 2][:20]
+    out = {
+        "url": "", "title": a.title, "company": f"{n} postings",
+        "location": ", ".join(dict.fromkeys(x.get("location", "") for x in analyses if x.get("location")))[:200],
+        "seniority": Counter(x.get("seniority", "") for x in analyses).most_common(1)[0][0] if analyses else "",
+        "required_skills": required, "preferred_skills": preferred, "keywords": keywords,
+        "responsibilities": [r for x in analyses for r in (x.get("responsibilities") or [])][:12],
+        "search_queries": list(dict.fromkeys(q for x in analyses for q in (x.get("search_queries") or [])))[:12],
+        "sources": [x.get("url", "") for x in analyses],
+    }
+    Path(a.out).write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"Role profile from {n} postings -> {a.out}\n  required: {', '.join(required) or '(none recurring)'}"
+          f"\n  preferred: {', '.join(preferred)}")
+
+
+def cmd_export_md(a) -> None:
+    _need_deps()
+    from openpyxl import load_workbook
+
+    ws = load_workbook(a.tracker, read_only=True)["Jobs"]
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        sys.exit("Tracker is empty")
+    h = [str(x) if x else "" for x in rows[0]]
+    get = lambda r, k: (str(r[h.index(k)]) if k in h and r[h.index(k)] not in (None, "") else "")  # noqa: E731
+    data = [r for r in rows[1:] if any(r)]
+    data.sort(key=lambda r: (get(r, "Date Found"), int(get(r, "Match %") or 0)), reverse=True)
+    lines = [f"# Job tracker ({len(data)} jobs)", "", "Newest first, then best match. Full details: `applications/job_tracker.xlsx`.", "",
+             "| Found | Match | Role | Company | Location | Type | Pay | Posted | Status |", "|---|---|---|---|---|---|---|---|---|"]
+    esc = lambda x: x.replace("|", "/").replace("\n", " ")  # noqa: E731
+    for r in data[: a.limit]:
+        role = esc(get(r, "Job Title"))
+        url = get(r, "URL")
+        lines.append("| " + " | ".join([
+            get(r, "Date Found"), (get(r, "Match %") + "%") if get(r, "Match %") else "",
+            f"[{role}]({url})" if url else role, esc(get(r, "Company")), esc(get(r, "Location")),
+            get(r, "Type"), esc(get(r, "Salary / Stipend")), get(r, "Date Posted"), get(r, "Status"),
+        ]) + " |")
+    posts = [r for r in data if get(r, "Apply Via") or get(r, "Poster / Contact")]
+    if posts:
+        lines += ["", "## Direct contacts (hiring posts)", ""]
+        for r in posts[:30]:
+            lines.append(f"- **{esc(get(r, 'Job Title'))}** at {esc(get(r, 'Company'))}: apply via {esc(get(r, 'Apply Via'))}"
+                         + (f"; poster {esc(get(r, 'Poster / Contact'))}" if get(r, "Poster / Contact") else "") + f" ([post]({get(r, 'URL')}))")
+    Path(a.out).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"Wrote {min(len(data), a.limit)} rows to {a.out}")
+
+
+CONFIG = Path("job_search/config.json")
+CONFIG_DEFAULTS = {"auto_save": None, "save_branch": None}
+
+
+def _read_config() -> dict:
+    cfg = dict(CONFIG_DEFAULTS)
+    if CONFIG.exists():
+        cfg.update(json.loads(CONFIG.read_text(encoding="utf-8")))
+    return cfg
+
+
+def _git(*args: str) -> str:
+    try:
+        return subprocess.run(["git", *args], capture_output=True, text=True, timeout=20).stdout.strip()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def cmd_env(_a) -> None:
+    import importlib.util
+    import os
+
+    cloud = os.environ.get("CLAUDE_CODE_REMOTE") == "true"
+    default = _git("symbolic-ref", "--short", "refs/remotes/origin/HEAD").removeprefix("origin/")
+    if not default:  # fresh clones in cloud sessions often lack origin/HEAD; ask the remote
+        m = re.search(r"ref: refs/heads/(\S+)\s+HEAD", _git("ls-remote", "--symref", "origin", "HEAD"))
+        default = m.group(1) if m else ""
+    deps = all(importlib.util.find_spec(m) for m in ("docx", "openpyxl"))
+    cfg = _read_config()
+    info = {
+        "mode": "cloud (Claude app / web / mobile)" if cloud else "local",
+        "browser_mode": "unavailable in cloud sessions" if cloud else "available only if started with `claude --chrome` (check for Chrome tools)",
+        "current_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+        "default_branch": default,
+        "save_branch": cfg["save_branch"] or default,
+        "auto_save": cfg["auto_save"],
+        "deps_installed": deps,
+    }
+    print(json.dumps(info, indent=2))
+    if not deps:
+        print("Install dependencies: python3 -m pip install -r requirements.txt")
+    if cloud and cfg["auto_save"] is None:
+        print("auto_save not set: ask the user once whether results should be committed and pushed automatically.")
+
+
+def cmd_config(a) -> None:
+    cfg = _read_config()
+    if a.key is None:
+        print(json.dumps(cfg, indent=2))
+        return
+    if a.key not in CONFIG_DEFAULTS:
+        sys.exit(f"Unknown key {a.key}; valid: {', '.join(CONFIG_DEFAULTS)}")
+    if a.value is None:
+        print(json.dumps(cfg[a.key]))
+        return
+    val: object = {"true": True, "false": False, "null": None}.get(a.value.lower(), a.value)
+    cfg[a.key] = val
+    CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    CONFIG.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
+    print(f"{a.key} = {json.dumps(val)}")
+
+
 def cmd_log(a) -> None:
     _need_deps()
     from tracker import log_application
@@ -329,6 +470,12 @@ def main(argv=None) -> None:
     s = sub.add_parser("search-urls"); s.add_argument("--keywords", required=True); s.add_argument("--location", default="")
     s.add_argument("--type", choices=["any", "internship", "fulltime"], default="any"); s.add_argument("--days", type=int, default=7)
     s.set_defaults(f=cmd_search_urls)
+    s = sub.add_parser("merge-analyses"); s.add_argument("files", nargs="+"); s.add_argument("--title", required=True)
+    s.add_argument("--out", required=True); s.set_defaults(f=cmd_merge_analyses)
+    s = sub.add_parser("export-md"); s.add_argument("--tracker", default="applications/job_tracker.xlsx")
+    s.add_argument("--out", default="applications/JOBS.md"); s.add_argument("--limit", type=int, default=100); s.set_defaults(f=cmd_export_md)
+    sub.add_parser("env").set_defaults(f=cmd_env)
+    s = sub.add_parser("config"); s.add_argument("key", nargs="?"); s.add_argument("value", nargs="?"); s.set_defaults(f=cmd_config)
     s = sub.add_parser("log"); s.add_argument("--tracker", required=True); s.add_argument("--company", required=True)
     s.add_argument("--role", required=True); s.add_argument("--url", default=""); s.add_argument("--before", type=int)
     s.add_argument("--after", type=int); s.add_argument("--file", required=True); s.set_defaults(f=cmd_log)

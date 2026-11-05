@@ -94,6 +94,8 @@ def test_detect_ats():
     wd = boards.detect_ats("https://bigco.wd5.myworkdayjobs.com/en-US/External/job/X_R1")
     assert wd == {"ats": "workday", "host": "bigco.wd5.myworkdayjobs.com", "tenant": "bigco", "site": "External"}
     assert boards.detect_ats("https://www.naukri.com/job-listings-1") is None
+    sr = boards.detect_ats("https://jobs.smartrecruiters.com/ni/DrReddysLaboratoriesLimited/ca1b-team-member")
+    assert sr == {"ats": "smartrecruiters", "slug": "DrReddysLaboratoriesLimited"}
 
 
 def test_watch_cli(tmp_path):

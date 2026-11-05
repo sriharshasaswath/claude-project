@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "name": "ShipBob",
+    "ats": "greenhouse",
+    "slug": "shipbobinc"
+  },
+  {
+    "name": "Jobgether",
+    "ats": "lever",
+    "slug": "jobgether"
+  },
+  {
+    "name": "Dr. Reddy's Laboratories",
+    "ats": "smartrecruiters",
+    "slug": "DrReddysLaboratoriesLimited"
+  }
+]

@@ -233,7 +233,9 @@ def detect_ats(url: str) -> dict[str, str] | None:
     if host == "jobs.ashbyhq.com" and first:
         return {"ats": "ashby", "slug": first}
     if host in {"jobs.smartrecruiters.com", "careers.smartrecruiters.com"} and first:
-        return {"ats": "smartrecruiters", "slug": first}
+        # some links carry a short prefix segment, e.g. /ni/<CompanyId>/<job-id>
+        slug = parts[1] if len(first) <= 3 and len(parts) > 1 and first.islower() else first
+        return {"ats": "smartrecruiters", "slug": slug}
     if host == "apply.workable.com" and first and first not in {"api", "j"}:
         return {"ats": "workable", "slug": first}
     if host.endswith(".recruitee.com") and host.count(".") == 2:

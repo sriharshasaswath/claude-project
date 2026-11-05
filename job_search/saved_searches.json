@@ -1,1 +1,37 @@
-[]
+[
+  {
+    "name": "supply chain internship",
+    "query": "supply chain internship, last 14 days",
+    "keywords": [
+      "supply chain",
+      "SCM",
+      "demand planning",
+      "inventory",
+      "procurement",
+      "logistics",
+      "S&OP",
+      "operations",
+      "materials management",
+      "warehouse",
+      "sourcing",
+      "planning"
+    ],
+    "type": "internship",
+    "locations": [
+      "India",
+      "remote"
+    ],
+    "days": 14,
+    "posted_since": "2026-10-22",
+    "level": "student / MBA intern (MBA at IIT Kanpur, 2026-28; B.Tech Mechanical; 2.5 yrs Wipro)",
+    "exclude": [
+      "senior",
+      "manager",
+      "director",
+      "lead",
+      "sales",
+      "full-time only"
+    ],
+    "last_run": "2026-11-05"
+  }
+]

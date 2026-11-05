@@ -2,7 +2,7 @@
 name: tailor
 description: Tailor the user's base resume to a job posting link for a strong ATS score, iterate with them in chat until they approve, save the result as a new DOCX named after the company and role, and append similar open jobs (found by deep web research) to the running Excel tracker. Use when the user runs /tailor <job-url> or asks to tailor their resume to a job link.
 argument-hint: <job-posting-url>
-allowed-tools: WebFetch, WebSearch, Read, Write, Edit, Glob, Grep, Bash(python3 .claude/skills/tailor/scripts/resume_kit.py *), Bash(mkdir -p applications/*), Bash(git add applications/*), Bash(git status*)
+allowed-tools: WebFetch, WebSearch, Agent, Read, Write, Edit, Glob, Grep, Bash(python3 jobkit/kit.py *), Bash(mkdir -p applications/*), Bash(git add applications/*), Bash(git status*)
 ---
 
 # /tailor — tailor the resume to a job, review until approved, track similar jobs
@@ -10,7 +10,7 @@ allowed-tools: WebFetch, WebSearch, Read, Write, Edit, Glob, Grep, Bash(python3 
 Job link: **$ARGUMENTS**
 
 Run every command from the repository root. The helper is
-`python3 .claude/skills/tailor/scripts/resume_kit.py <subcommand>` (called `kit` below). It needs only
+`python3 jobkit/kit.py <subcommand>` (called `kit` below). It needs only
 `python-docx` and `openpyxl`; run `kit check` first, and if it fails, install them with the pip command it prints.
 No API key is used. You do the fetching, research and writing with your own WebFetch/WebSearch tools.
 
@@ -22,7 +22,7 @@ No API key is used. You do the fetching, research and writing with your own WebF
 | `resume/base_resume.docx` | The original resume file, kept for reference. |
 | `applications/<Slug>/` | One folder per job. `<Slug>` comes from `kit slug "<Company>" "<Role>"`. |
 | `applications/<Slug>/<Slug>_Resume.docx` | The approved tailored resume, plus `.md` and `.json` copies alongside it. |
-| `applications/job_tracker.xlsx` | The single running Excel tracker. Sheet `Similar Jobs` gets new rows appended, de-duplicated across runs. Sheet `Tailored Resumes` gets one row per approved resume. |
+| `applications/job_tracker.xlsx` | The single running Excel tracker. Sheet `Jobs` gets new rows appended (shared with `/find-jobs`), de-duplicated across runs. Sheet `Tailored Resumes` gets one row per approved resume. |
 
 Read `reference/schemas.md` for the JSON shapes and `reference/ats-rules.md` for the writing rules before drafting.
 
@@ -108,17 +108,15 @@ When the user replies:
 Goal: about **15 to 25 currently open** postings similar to this one in role, seniority, skills, and location,
 where the user has a realistic chance.
 
-1. Run at least 10 varied WebSearch queries: the queries from `job_analysis.json`, title synonyms, the core skills
-   with the location, competitor companies, and site-specific searches. Choose job boards that suit the job's
-   country. For India: LinkedIn Jobs, Naukri, iimjobs, Instahyre, foundit, Wellfound, Cutshort, and company career pages.
-   Global: LinkedIn, Indeed, Glassdoor, Wellfound, Greenhouse, Lever, Ashby, Workday, and company sites.
-2. WebFetch promising results to confirm each posting is open and to get its details. Prefer the employer's or the
-   ATS's own URL over an aggregator's. Never invent a URL, company, salary, or date. Leave a field empty if it is unknown.
-3. Leave out the original posting, duplicates, and closed or expired postings.
-4. Write `applications/<Slug>/similar_jobs.json`, shaped as in `reference/schemas.md`.
-5. `kit add-jobs applications/<Slug>/similar_jobs.json --tracker applications/job_tracker.xlsx --found-for "<Company> – <Role>" --resume applications/<Slug>/<Slug>_Resume.json`
-   adds new rows only, skips jobs already in the tracker, and ranks the new rows by match %.
-6. Report how many jobs were added and skipped, and list the top 5 by match % with their links.
+Run this as a focused version of the `/find-jobs` sweep. Read `.claude/skills/find-jobs/SKILL.md` and follow its
+steps 2 to 4 (career-portal scan, job boards, LinkedIn hiring posts, browser mode if available, then verify).
+Build the criteria from `job_analysis.json`: its title and synonyms, required skills, location, and seniority.
+Use these settings:
+- Run folder: `applications/<Slug>/research/`. Write one JSON file per source group there.
+- Leave out the original posting.
+- Merge with `kit add-jobs applications/<Slug>/research/*.json --tracker applications/job_tracker.xlsx --found-for "<Company> – <Role>" --resume applications/<Slug>/<Slug>_Resume.json`.
+  This appends new rows only, skips jobs already in the tracker, and ranks the new rows by match %.
+- Report how many jobs were added and skipped, the top 5 by match % with their links, and any LinkedIn posts with a direct contact.
 
 If the user wants research only, or wants to research before approving, run Step 6 by itself. Use the base resume
 for match % if no approved resume exists yet.

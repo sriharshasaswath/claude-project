@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS = ROOT / ".claude/skills/tailor/scripts"
+SCRIPTS = ROOT / "jobkit"
 BASE = ROOT / "resume/base_resume.json"
 sys.path.insert(0, str(SCRIPTS))
 
@@ -22,7 +22,7 @@ JOB = {
 
 
 def kit(*args):
-    return subprocess.run([sys.executable, str(SCRIPTS / "resume_kit.py"), *map(str, args)],
+    return subprocess.run([sys.executable, str(SCRIPTS / "kit.py"), *map(str, args)],
                           capture_output=True, text=True, cwd=ROOT)
 
 

@@ -36,17 +36,43 @@ Optional fields can be omitted. Missing keys are filled with empty values. `kit 
 }
 ```
 
-## Similar jobs (`applications/<Slug>/similar_jobs.json`)
+## Job record (`similar_jobs.json`, `job_search/runs/<run>/<group>.json`)
+
+Either `{"jobs": [...]}` or a bare list. Only `title` and `url` are required. `kit add-jobs` accepts several files at once.
 
 ```json
 {
   "jobs": [
     {
-      "title": "", "company": "", "location": "", "work_mode": "Remote | Hybrid | Onsite",
-      "experience": "0-2 years", "salary": "", "date_posted": "2026-11-01",
-      "source": "LinkedIn | Naukri | company site | ...", "url": "https://...",
-      "key_skills": ["SQL", "Power BI"], "why_similar": "one sentence"
+      "title": "Supply Chain Analyst Intern",
+      "company": "Acme",
+      "location": "Bengaluru",
+      "work_mode": "Remote | Hybrid | Onsite",
+      "type": "Internship | Full-time | Contract",
+      "experience": "0-2 years",
+      "salary": "₹25,000/month stipend",
+      "duration": "6 months",
+      "date_posted": "2026-11-01",
+      "deadline": "2026-11-20",
+      "source": "LinkedIn | LinkedIn post | Naukri | Internshala | Acme careers (Greenhouse) | ...",
+      "found_via": "Career portal API | Job board | Social post | Browser | Web search",
+      "apply_via": "https://apply-link or hr@acme.com or 'DM poster'",
+      "contact": "Poster name – https://linkedin.com/in/...",
+      "key_skills": ["SQL", "Power BI"],
+      "why_relevant": "one sentence",
+      "url": "https://... (the posting, or the LinkedIn post URL)"
     }
   ]
 }
+```
+
+## Watchlist (`job_search/watchlist.json`)
+
+Managed with `kit watch add <careers-url> --name <Company>`, `kit watch list`, and `kit watch remove <Company>`.
+
+```json
+[
+  {"name": "Acme", "ats": "greenhouse", "slug": "acme"},
+  {"name": "Big Co", "ats": "workday", "host": "bigco.wd5.myworkdayjobs.com", "tenant": "bigco", "site": "External"}
+]
 ```

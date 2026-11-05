@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Helper CLI for the /tailor skill. No API keys; deterministic local work only.
+"""Helper CLI for the /tailor and /find-jobs skills. No API keys; deterministic local work only.
 
   check                                     verify python-docx/openpyxl are installed
   slug COMPANY ROLE                         -> file-safe name, e.g. Deloitte_Supply-Chain-Analyst
@@ -11,7 +11,12 @@
   audit BASE.json NEW.json                  flag numbers/employers/titles/dates not in the base resume
   fetch-job URL                             fallback job-page reader (JSON-LD), prints JSON
   extract-text FILE                         plain text from .docx/.pdf/.txt (to rebuild the base resume)
-  add-jobs JOBS.json --tracker X.xlsx --found-for "Company – Role" [--resume R.json]
+  add-jobs JOBS.json [MORE.json ...] --tracker X.xlsx --found-for "..." [--resume R.json]
+  detect-ats URL [URL ...]                  which career-portal ATS a URL uses (+ watchlist entry)
+  watch add URL --name NAME | watch list | watch remove NAME   manage job_search/watchlist.json
+  scan-boards --keywords "a,b" [--exclude ...] [--locations ...] [--type internship|fulltime|any]
+              [--days N] [--title-only] --out FILE.json     scan every watchlist career portal
+  search-urls --keywords "..." [--location ..] [--type ..] [--days N]   board search links (browser mode)
   log --tracker X.xlsx --company C --role R --url U --before N --after N --file PATH
 """
 
@@ -187,15 +192,101 @@ def cmd_add_jobs(a) -> None:
     from resume_schema import all_text
     from tracker import append_jobs
 
-    data = json.loads(Path(a.jobs).read_text(encoding="utf-8"))
-    jobs = data["jobs"] if isinstance(data, dict) else data
+    jobs = []
+    for f in a.jobs:
+        data = json.loads(Path(f).read_text(encoding="utf-8"))
+        jobs.extend(data["jobs"] if isinstance(data, dict) else data)
     match_fn = None
     if a.resume:
         text = all_text(_load(a.resume))
         match_fn = lambda skills: match_percent(text, skills)  # noqa: E731
     res = append_jobs(Path(a.tracker), jobs, a.found_for, match_fn)
-    print(f"Tracker {a.tracker}: added {res['added']}, skipped {res['duplicates_skipped']} duplicates, "
+    print(f"Tracker {a.tracker}: added {res['added']}, skipped {res['duplicates_skipped']} already in tracker, "
           f"{res['invalid_skipped']} without URL/title; {res['total_rows']} jobs total.")
+    for src, n in sorted(res["added_by_source"].items(), key=lambda x: -x[1]):
+        print(f"  + {n:3d}  {src}")
+
+
+WATCHLIST = Path("job_search/watchlist.json")
+
+
+def _read_watchlist(path: Path) -> list[dict]:
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+
+
+def cmd_detect_ats(a) -> None:
+    from boards import detect_ats
+
+    for url in a.urls:
+        e = detect_ats(url)
+        print(json.dumps({"url": url, "entry": e}))
+
+
+def cmd_watch(a) -> None:
+    from boards import detect_ats, entry_key
+
+    path = Path(a.watchlist)
+    wl = _read_watchlist(path)
+    if a.action == "list":
+        for e in sorted(wl, key=lambda x: x["name"].lower()):
+            print(f"{e['name']:<30} {e['ats']:<16} {e.get('slug') or e.get('host', '') + '/' + e.get('site', '')}")
+        print(f"{len(wl)} companies")
+        return
+    if a.action == "remove":
+        keep = [e for e in wl if e["name"].lower() != (a.name or "").lower()]
+        path.write_text(json.dumps(keep, indent=2) + "\n", encoding="utf-8")
+        print(f"Removed {len(wl) - len(keep)}")
+        return
+    if not a.target:
+        sys.exit("watch add needs a careers/job URL")
+    e = detect_ats(a.target)
+    if not e:
+        sys.exit(f"Not a supported ATS URL (Greenhouse/Lever/Ashby/SmartRecruiters/Workable/Recruitee/Workday): {a.target}")
+    e = {"name": a.name or (e.get("slug") or e.get("tenant", "")).replace("-", " ").title(), **e}
+    if entry_key(e) in {entry_key(x) for x in wl}:
+        print(f"Already watching: {e['name']}")
+        return
+    wl.append(e)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(wl, indent=2) + "\n", encoding="utf-8")
+    print(f"Watching {e['name']} ({e['ats']}); {len(wl)} companies")
+
+
+def _csv(s: str | None) -> list[str]:
+    return [x.strip() for x in (s or "").split(",") if x.strip()]
+
+
+def cmd_scan_boards(a) -> None:
+    from boards import scan
+
+    wl = _read_watchlist(Path(a.watchlist))
+    if a.only:
+        wanted = {x.lower() for x in _csv(a.only)}
+        wl = [e for e in wl if e["name"].lower() in wanted]
+    if not wl:
+        sys.exit(f"Watchlist {a.watchlist} is empty. Add companies with: kit watch add <careers-url> --name <Company>")
+    jobs, report = scan(wl, keywords=_csv(a.keywords), exclude=_csv(a.exclude), locations=_csv(a.locations),
+                        job_type=a.type, days=a.days, title_only=a.title_only)
+    for j in jobs:
+        j.pop("description", None) if a.no_description else None
+    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    Path(a.out).write_text(json.dumps({"jobs": jobs}, indent=2, ensure_ascii=False), encoding="utf-8")
+    errors = [r for r in report if "error" in r]
+    print(f"Scanned {len(wl)} career portals: {len(jobs)} matching jobs -> {a.out}")
+    for r in report:
+        if "error" not in r and r["matched"]:
+            print(f"  {r['matched']:3d}/{r['postings']:<4d} {r['company']} ({r['ats']})")
+    if errors:
+        print(f"{len(errors)} portals failed:")
+        for r in errors:
+            print(f"  ! {r['company']} ({r['ats']}): {r['error']}")
+
+
+def cmd_search_urls(a) -> None:
+    from boards import search_urls
+
+    for name, url in search_urls(a.keywords, a.location, a.type, a.days).items():
+        print(f"{name:<24} {url}")
 
 
 def cmd_log(a) -> None:
@@ -225,8 +316,19 @@ def main(argv=None) -> None:
     s = sub.add_parser("audit"); s.add_argument("base"); s.add_argument("new"); s.set_defaults(f=cmd_audit)
     s = sub.add_parser("fetch-job"); s.add_argument("url"); s.set_defaults(f=cmd_fetch_job)
     s = sub.add_parser("extract-text"); s.add_argument("file"); s.set_defaults(f=cmd_extract_text)
-    s = sub.add_parser("add-jobs"); s.add_argument("jobs"); s.add_argument("--tracker", required=True)
+    s = sub.add_parser("add-jobs"); s.add_argument("jobs", nargs="+"); s.add_argument("--tracker", required=True)
     s.add_argument("--found-for", required=True); s.add_argument("--resume"); s.set_defaults(f=cmd_add_jobs)
+    s = sub.add_parser("detect-ats"); s.add_argument("urls", nargs="+"); s.set_defaults(f=cmd_detect_ats)
+    s = sub.add_parser("watch"); s.add_argument("action", choices=["add", "list", "remove"]); s.add_argument("target", nargs="?")
+    s.add_argument("--name"); s.add_argument("--watchlist", default=str(WATCHLIST)); s.set_defaults(f=cmd_watch)
+    s = sub.add_parser("scan-boards"); s.add_argument("--keywords", default=""); s.add_argument("--exclude", default="")
+    s.add_argument("--locations", default=""); s.add_argument("--type", choices=["any", "internship", "fulltime"], default="any")
+    s.add_argument("--days", type=int); s.add_argument("--title-only", action="store_true")
+    s.add_argument("--only", help="Comma-separated company names to scan"); s.add_argument("--no-description", action="store_true")
+    s.add_argument("--watchlist", default=str(WATCHLIST)); s.add_argument("--out", required=True); s.set_defaults(f=cmd_scan_boards)
+    s = sub.add_parser("search-urls"); s.add_argument("--keywords", required=True); s.add_argument("--location", default="")
+    s.add_argument("--type", choices=["any", "internship", "fulltime"], default="any"); s.add_argument("--days", type=int, default=7)
+    s.set_defaults(f=cmd_search_urls)
     s = sub.add_parser("log"); s.add_argument("--tracker", required=True); s.add_argument("--company", required=True)
     s.add_argument("--role", required=True); s.add_argument("--url", default=""); s.add_argument("--before", type=int)
     s.add_argument("--after", type=int); s.add_argument("--file", required=True); s.set_defaults(f=cmd_log)

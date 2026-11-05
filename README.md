@@ -1,10 +1,11 @@
-# Resume Tailor: a Claude Code skill
+# Job Search Toolkit: Claude Code skills
 
-Tailor your resume to any job posting with one command:
+| Command | What it does |
+|---|---|
+| `/tailor <job-url>` | Tailors your resume to one posting, iterates with you until you approve, saves it as `<Company>_<Role>_Resume.docx`, and adds similar jobs to the tracker |
+| `/find-jobs <what you want>` | Deep search for jobs and internships across career portals, job boards, and LinkedIn hiring posts, added to the same tracker |
 
-```
-/tailor https://link-to-the-job-posting
-```
+Example: `/find-jobs supply chain / operations internship, Bengaluru or remote, last 14 days`
 
 You don't need an API key. Claude Code uses its own web fetch and search tools.
 
@@ -23,19 +24,36 @@ You don't need an API key. Claude Code uses its own web fetch and search tools.
    `applications/job_tracker.xlsx`. Jobs found on earlier runs are skipped, and each new job is ranked by how many
    of its key skills your resume covers. A second sheet logs every resume you tailor.
 
+## How `/find-jobs` searches
+1. **Company career portals** via the public job APIs of Greenhouse, Lever, Ashby, SmartRecruiters, Workable,
+   Recruitee, and Workday (`kit scan-boards`). The companies it checks live in `job_search/watchlist.json`.
+   The list grows on every run: whenever web search turns up a company on one of these platforms, it's added
+   (`kit watch add <careers-url>`).
+2. **Job boards** via web search: LinkedIn Jobs, Indeed, Naukri, Glassdoor, foundit, Internshala, Unstop, iimjobs,
+   Instahyre, Wellfound, Cutshort, hiring.cafe, and Google Jobs.
+3. **LinkedIn hiring posts** ("we're hiring, DM me / mail your CV") found with `site:linkedin.com/posts` searches.
+   The poster and how to apply go in the tracker.
+4. **Your logged-in Chrome** when you start Claude Code with `claude --chrome`. This is the deepest option: it uses
+   LinkedIn's own post search, hiring.cafe, Indeed, and Naukri, which block plain web fetching. It browses at a human
+   pace, reads only, and stops on CAPTCHAs or warnings. Heavy automation can get a LinkedIn account restricted.
+
+Every posting is opened and checked before it's added. Duplicates are removed across sources and across runs,
+and each job gets a match % against your resume. Results go to `applications/job_tracker.xlsx`, sheet **Jobs**,
+with columns for Type, Stipend/Salary, Deadline, Apply Via, Poster/Contact, Status, and more.
+
 ## Setup
 ```bash
 python3 -m pip install -r requirements.txt
 ```
-Open Claude Code in this repository. The skill lives in `.claude/skills/tailor/`.
+Open Claude Code in this repository (`claude`, or `claude --chrome` for browser mode).
 
 ## Layout
 ```
-.claude/skills/tailor/
-  SKILL.md                  step-by-step workflow Claude follows
-  reference/ats-rules.md    writing and honesty rules
-  reference/schemas.md      JSON shapes
-  scripts/resume_kit.py     helper CLI: score, audit, render, tracker, fetch-job, extract-text
+.claude/skills/tailor/      /tailor workflow, ATS writing rules, JSON shapes
+.claude/skills/find-jobs/   /find-jobs workflow
+jobkit/kit.py               helper CLI (python3 jobkit/kit.py --help): score, audit, render, add-jobs,
+                            scan-boards, watch, detect-ats, search-urls, fetch-job, extract-text
+job_search/                 watchlist.json, saved_searches.json, runs/<date>_<query>/ raw results
 resume/
   base_resume.docx          your original resume
   base_resume.json          the facts every tailored version is built from

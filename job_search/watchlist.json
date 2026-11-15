@@ -5,19 +5,9 @@
     "slug": "shipbobinc"
   },
   {
-    "name": "Jobgether",
-    "ats": "lever",
-    "slug": "jobgether"
-  },
-  {
     "name": "Dr. Reddy's Laboratories",
     "ats": "smartrecruiters",
     "slug": "DrReddysLaboratoriesLimited"
-  },
-  {
-    "name": "Neysa",
-    "ats": "greenhouse",
-    "slug": "neysanetwork"
   },
   {
     "name": "Zinnov",
@@ -27,8 +17,7 @@
   {
     "name": "Groww",
     "ats": "greenhouse",
-    "slug": "groww",
-    "region": "eu"
+    "slug": "groww"
   },
   {
     "name": "Razorpay",

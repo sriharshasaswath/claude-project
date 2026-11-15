@@ -83,8 +83,19 @@ def _job(company: str, ats: str, **kw: Any) -> dict[str, Any]:
 # ------------------------------------------------------------------ fetchers
 
 def fetch_greenhouse(e: dict) -> list[dict]:
-    host = "boards-api.eu.greenhouse.io" if e.get("region") == "eu" else "boards-api.greenhouse.io"
-    data = _get_json(f"https://{host}/v1/boards/{e['slug']}/jobs?content=true")
+    # EU-hosted boards (job-boards.eu.greenhouse.io) are usually still served by the main API; try both.
+    hosts = ["boards-api.greenhouse.io", "boards-api.eu.greenhouse.io"]
+    if e.get("region") == "eu":
+        hosts.reverse()
+    data, last_err = None, None
+    for host in hosts:
+        try:
+            data = _get_json(f"https://{host}/v1/boards/{e['slug']}/jobs?content=true")
+            break
+        except Exception as err:  # noqa: BLE001 - fall through to the other host
+            last_err = err
+    if data is None:
+        raise last_err
     out = []
     for j in data.get("jobs", []):
         out.append(_job(

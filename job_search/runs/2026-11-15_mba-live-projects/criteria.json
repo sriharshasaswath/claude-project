@@ -1,0 +1,12 @@
+{
+  "name": "MBA live projects / capstone",
+  "query": "capstone / live project / MBA",
+  "keywords": ["live project", "capstone", "MBA project", "short-term project", "winter project", "part-time project", "consulting project", "project intern", "MBA intern", "strategy project", "operations project", "supply chain project", "market research project"],
+  "type": "internship",
+  "locations": ["India", "remote"],
+  "days": 30,
+  "posted_since": "2026-10-16",
+  "level": "MBA student (IIT Kanpur, 2026-28); 2.5 yrs work experience",
+  "exclude": ["full-time", "senior", "fee-based programs", "certificate courses"],
+  "last_run": "2026-11-15"
+}
